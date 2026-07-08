@@ -82,14 +82,23 @@ def read_token():
 
 # ADDED: Helper function to enforce secure file paths and prevent traversal
 def get_safe_path(filename):
+    # 1. Strictly check if the raw filename attempts to escape the storage directory
+    raw_target_path = os.path.abspath(os.path.join(STORAGE_DIR, filename))
+    
+    try:
+        # Use commonpath to guarantee the target stays fully inside STORAGE_DIR
+        if os.path.commonpath([STORAGE_DIR, raw_target_path]) != os.path.abspath(STORAGE_DIR):
+            return None
+    except ValueError:
+        # Failsafe for OS edge cases (like different drives on Windows)
+        return None
+
+    # 2. If it's safely within bounds, sanitize it for the filesystem
     safe_name = secure_filename(filename)
     if not safe_name:
         return None
-    target_path = os.path.abspath(os.path.join(STORAGE_DIR, safe_name))
-    if not target_path.startswith(STORAGE_DIR):
-        return None
-    return target_path
-
+        
+    return os.path.join(STORAGE_DIR, safe_name)
 
 @app.post("/login")
 def login():
